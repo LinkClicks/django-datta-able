@@ -8,7 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseRedirect
 from django.template import loader
 from django.urls import reverse
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 import requests
 import os
 from .models import Tokens
@@ -32,6 +32,7 @@ def oauth(request):
     a_tkn = r_dict["access_token"]
     r_tkn = r_dict["refresh_token"]
     print("access token is:")
+    print("asas")
     print(a_tkn)
     print("refresh token is:")
     print(r_tkn)
@@ -39,26 +40,67 @@ def oauth(request):
     querystring = {"with_ad_accounts":"true"}
     headers = {"Authorization": "Bearer "+ (a_tkn)}
     response = requests.request("GET", url, headers=headers, params=querystring)
-    # print(response.json())
+    print(response.json())
     response_dict = response.json()
+    print(response.json())
     organizations = response_dict["organizations"]
-    print("a")
     i = 0
-    print("b")
     while i < len(organizations):
-        print("c")
         organization = organizations[i]["organization"]
-        print("d")
         i = i + 1
         print(i)
         print(organization)
-        print("e")
         # ad_accounts = organization["ad_accounts"]
-        # print("f")
         # print(ad_accounts)
+
+    # CREATING CAMPAIGN
+    url = "https://adsapi.snapchat.com/v1/adaccounts/184d5ad6-86ea-48dc-b35e-e7153f95fcc8/campaigns"
+    querystring = {"ad_account_id":"184d5ad6-86ea-48dc-b35e-e7153f95fcc8"}
+    payload = {"campaigns": [
+        {
+            "name": "Cool Campaign",
+            "ad_account_id": "184d5ad6-86ea-48dc-b35e-e7153f95fcc8",
+            "status": "PAUSED",
+            "start_time": "2022-09-11T22:03:58.869Z"
+        }
+        ]}
+    headers = {
+    "Authorization": "Bearer "+ (a_tkn),
+    "Content-Type": "application/json"
+    }
+    response = requests.request("POST", url, json=payload, headers=headers, params=querystring)
+    print("CAMPAIGN CREATED!!!")
+    print(response.text)
+
+    #CREATING AD_SQUAD
+    url = "https://adsapi.snapchat.com/v1/campaigns/c4562a36-7973-4523-a5f1-a0db7e2feb43/adsquads"
+    querystring = {"campaign_id":"c4562a36-7973-4523-a5f1-a0db7e2feb43"}
+    payload = {"adsquads": [
+        {
+            "campaign_id": "c4562a36-7973-4523-a5f1-a0db7e2feb43",
+            "name": "Ad Squad Uno",
+            "type": "SNAP_ADS",
+            "placement_v2": {"config": "AUTOMATIC"},
+            "optimization_goal": "IMPRESSIONS",
+            "bid_micro": 1000000,
+            "daily_budget_micro": 1000000000,
+            "bid_strategy": "LOWEST_COST_WITH_MAX_BID",
+            "billing_event": "IMPRESSION",
+            "targeting": {"geos": [{"country_code": "can"}]},
+            "start_time": "2022-09-11T22:03:58.869Z"
+        }
+    ]}
+    headers = {
+    "Authorization": "Bearer "+ (a_tkn),
+    "Content-Type": "application/json"
+    }
+    response = requests.request("POST", url, json=payload, headers=headers, params=querystring)
+    print("AD SQUAD CREATED!!")
+    print(response.text)
+    
     tokenn = Tokens(access_token=r_dict['access_token'], refresh_token=r_dict['refresh_token']) # create new model instance
     tokenn.save() #save to db
-    return render(request, "home/oauth.html")
+    return redirect("adaccounts.html")
 
 
 @login_required(login_url="/login/")
